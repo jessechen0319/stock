@@ -2,8 +2,14 @@ package com.makemoney.basic.bean;
 
 import java.util.Date;
 
+import org.bson.types.ObjectId;
+import org.mongodb.morphia.annotations.Entity;
+import org.mongodb.morphia.annotations.Id;
+
+@Entity
 public class StockSnapShot {
 	
+	@Id private ObjectId id;
 	private String name;
 	private String code;
 	private float price;
@@ -214,6 +220,12 @@ public class StockSnapShot {
 	}
 	public void setCode(String code) {
 		this.code = code;
+	}
+	public ObjectId getId() {
+		return id;
+	}
+	public void setId(ObjectId id) {
+		this.id = id;
 	}
 	
 }

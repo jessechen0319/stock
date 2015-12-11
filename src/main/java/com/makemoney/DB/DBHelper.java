@@ -1,19 +1,18 @@
 package com.makemoney.DB;
 
+import com.mongodb.Mongo;
 import com.mongodb.MongoClient;
-import com.mongodb.client.MongoDatabase;
 
 public class DBHelper {
 	
-	private static MongoDatabase database;
+	private static MongoClient database;
 	
-	public static MongoDatabase generateDB(){
+	public static MongoClient generateDB(){
+		
 		if(database != null){
 			return database;
 		} else {
-			MongoClient mongoClient = new MongoClient( "localhost" , 27017 );
-			MongoDatabase mongoDatabase = mongoClient.getDatabase("Make_Money");
-			database = mongoDatabase;
+			database = new MongoClient( "localhost" , 27017 );
 			return database;
 		}
 	}

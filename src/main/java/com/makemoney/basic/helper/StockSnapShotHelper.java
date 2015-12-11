@@ -7,19 +7,28 @@ import java.net.Proxy;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.Date;
+import java.util.List;
 
+import org.mongodb.morphia.Datastore;
+import org.mongodb.morphia.Morphia;
+
+import com.makemoney.DB.DBHelper;
+import com.makemoney.basic.bean.Stock;
 import com.makemoney.basic.bean.StockSnapShot;
 import com.makemoney.basic.constvalue.Market;
+import com.mongodb.MongoClient;
 
 /**
  * @author cheruixi
  *
  */
+
 public class StockSnapShotHelper {
 
 	private static final String APIPath = "http://hq.sinajs.cn/list=";
 	private static String proxyServer;
 	private static int proxyServerPort;
+	private static StockSnapShot previousStoredSnapShot;
 	
 	/**
 	 * @param stockCode
@@ -111,21 +120,57 @@ public class StockSnapShotHelper {
 		
 		String url = generateURL(stockCode, market);
 		String responseString = requestInfo(url);
-		StockSnapShot snapShot = parseSnapshot(responseString, stockCode);
-		storeStockSnapShot(snapShot);
+		System.out.println(url);
+		System.out.println(responseString);
+		if(responseString.length()>25){
+			StockSnapShot snapShot = parseSnapshot(responseString, stockCode);
+			storeStockSnapShot(snapShot);
+		}
 	}
 	
-	private static boolean storeStockSnapShot(StockSnapShot snapShot){
+	/**
+	 * @param snapShot
+	 * @purpose generate current amount, using current total amount - previous total amount
+	 */
+	private static void initCurrentAmount(StockSnapShot snapShot){
 		
-		return false;
+		if(previousStoredSnapShot != null){
+			snapShot.setCurrenAmount(snapShot.getTotalAmount() - previousStoredSnapShot.getTotalAmount());
+		} else {
+			snapShot.setCurrenAmount(0);
+		}
 	}
 	
+	private static void storeStockSnapShot(StockSnapShot snapShot)throws Exception{
+		
+		initCurrentAmount(snapShot);
+		MongoClient mongo = DBHelper.generateDB();
+		Morphia morphia = new Morphia();
+		morphia.map(StockSnapShot.class);
+		Datastore ds = morphia.createDatastore(mongo, "Make_Money");
+		ds.save(snapShot);
+		previousStoredSnapShot = snapShot;
+	}
+	
+
 	public static void main(String[] args) {
-		String stockCode = "300026";
 		try {
-			proxyServer = "web-proxy.rose.hp.com";
+			MongoClient mongo = DBHelper.generateDB();
+			Morphia morphia = new Morphia();
+			Datastore ds = morphia.createDatastore(mongo, "Make_Money");
+			List<Stock> stockList = ds.find(Stock.class).asList();
+			proxyServer = "web-proxy-sha.chn.hp.com";
 			proxyServerPort = 8080;
-			refreshSnapshot(stockCode, Market.ChuangYeBan);
+			Date requestDate = new Date();
+			for (Stock stock : stockList){
+				if(stock.getCode().equals("sh")){
+					refreshSnapshot(stock.getCode(), Market.ShangHai);
+				} else {
+					refreshSnapshot(stock.getCode(), Market.ShenZhen);
+				}
+			}
+			Date responseDate = new Date();
+			System.out.println(responseDate.getTime() - requestDate.getTime());
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
